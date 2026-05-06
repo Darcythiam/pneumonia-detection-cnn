@@ -1,4 +1,4 @@
-# 🩺 Pneumonia Detection from Chest X-Rays using CNNs and Transfer Learning
+# Pneumonia Detection from Chest X-Rays using CNNs and Transfer Learning
 
 Deep learning pipeline for automated pneumonia classification from chest X-ray images using a custom Convolutional Neural Network (CNN) and transfer learning with ResNet50.
 
@@ -11,7 +11,7 @@ Deep learning pipeline for automated pneumonia classification from chest X-ray i
 
 ---
 
-## 📌 Project Overview
+## Project Overview
 
 Pneumonia is a serious respiratory infection that can often be identified through chest X-ray imaging. Manual interpretation of X-rays may be time-consuming and subject to variability, making automated image classification an important application of deep learning in medical vision.
 
@@ -30,7 +30,7 @@ The project emphasizes:
 
 ---
 
-## 🧠 Models Implemented
+## Models Implemented
 
 ### 1️⃣ Baseline CNN
 Custom CNN architecture built from scratch using TensorFlow/Keras.
@@ -65,7 +65,7 @@ Leverages pretrained visual feature representations to improve convergence and c
 
 ---
 
-## 🗂 Dataset
+## Dataset
 
 Dataset:
 - **Chest X-ray Images (Pneumonia)** from Kaggle
@@ -86,7 +86,7 @@ data/
 
 ---
 
-## ⚙️ Data Preprocessing
+## Data Preprocessing
 
 The preprocessing pipeline includes:
 
@@ -105,7 +105,7 @@ Medical imaging datasets are relatively limited in size. Augmentation improves g
 
 ---
 
-## 📊 Evaluation Metrics
+## Evaluation Metrics
 
 Models were evaluated using multiple metrics:
 
@@ -125,7 +125,7 @@ This significantly improved prediction quality for the minority class.
 
 ---
 
-## 📈 Final Results
+## Final Results
 
 | Model | Accuracy | AUC |
 |------|------|------|
@@ -142,7 +142,7 @@ Possible reasons include:
 
 ---
 
-## 🔁 Reproducibility Analysis
+## Reproducibility Analysis
 
 To evaluate reproducibility and model stability:
 - Each model was trained twice using different random seeds
@@ -154,7 +154,7 @@ This indicates:
 
 ---
 
-## 🧪 Sample Pipeline
+## Sample Pipeline
 
 ```text
 Chest X-ray Image
@@ -169,7 +169,7 @@ Binary Classification
 
 ---
 
-## 🛠 Technologies Used
+## Technologies Used
 
 ### Languages & Frameworks
 - Python
@@ -184,20 +184,19 @@ Binary Classification
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 .
 ├── Project_5.ipynb
 ├── requirements.txt
 ├── README.md
-├── report/
 └── data/
 ```
 
 ---
 
-## 🚀 Installation
+## Installation
 
 Clone the repository:
 
@@ -227,7 +226,7 @@ jupyter notebook
 
 ---
 
-## 📌 Key Learning Outcomes
+## Key Learning Outcomes
 
 This project demonstrates:
 - CNN architecture design principles
@@ -239,6 +238,6 @@ This project demonstrates:
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This project was developed for educational and research purposes only. It is **not** a clinically validated diagnostic system and should not be used for medical decision-making.
