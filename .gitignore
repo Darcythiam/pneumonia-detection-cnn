@@ -3,3 +3,11 @@ venv/
 __pycache__/
 .ipynb_checkpoints/
 data/
+.venv/
+runs/
+*.keras
+*.onnx
+*.h5
+*.pyc
+.pytest_cache/
+pneumonia-detection-cnn-upgraded.zip
