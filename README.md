@@ -20,53 +20,104 @@ No new accuracy, AUC, sensitivity, or reproducibility claim is made until the ne
 
 ## Dataset and setup
 
-The images are **not** included in this repository. The [Kaggle Chest X-Ray Images (Pneumonia) dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) can be downloaded with KaggleHub, which returns the local path and caches the files outside this repo. The pipeline resolves the returned root or its `chest_xray` child. The expected directories are `train/NORMAL`, `train/PNEUMONIA`, `test/NORMAL`, and `test/PNEUMONIA`; the original `val` directory is optional. Respect the dataset terms and provide Kaggle credentials if your Kaggle environment requires them.
+The images are not tracked in this repository. Download the [Chest X-Ray Images (Pneumonia) dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) and extract its `chest_xray` folder into `data/`:
 
-Use Python 3.11 or 3.12. TensorFlow installation and pretrained ResNet weights require a compatible environment and a network connection for the initial weights download.
+```text
+data/chest_xray/
+├── train/
+│   ├── NORMAL/
+│   └── PNEUMONIA/
+├── test/
+│   ├── NORMAL/
+│   └── PNEUMONIA/
+└── val/                 # Optional
+```
 
-For the notebook workflow, extract the dataset so `data/chest_xray/train/NORMAL`, `data/chest_xray/train/PNEUMONIA`, `data/chest_xray/test/NORMAL`, and `data/chest_xray/test/PNEUMONIA` exist. Install the requirements, run `jupyter lab` from this repository's main directory, and open `Project_5.ipynb`. The notebook prints the full local path and stops with a clear error if Jupyter starts in another directory or the data folders are missing. It does not call KaggleHub. Keep `pneumonia_cnn/` alongside it.
+Both the notebook and the terminal training command use `data/chest_xray/`. The original `train` and optional `val` images form the pool from which the pipeline creates a stratified validation split. The original `test` directory remains held out. The dataset comes from the work of [Kermany, Zhang, and Goldbaum](https://data.mendeley.com/datasets/rscbjbr9sj/2).
+
+Use Python 3.11 or 3.12. From the project root, create an environment and install the dependencies:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python -m pneumonia_cnn.train --download-kaggle --models baseline resnet50 --seeds 42 123 456
 ```
 
-Training ResNet50 may take considerable time on CPU. To validate the baseline workflow first:
+### Run from the notebook
+
+Start Jupyter Lab from the project root and open `Project_5.ipynb`:
 
 ```bash
-python -m pneumonia_cnn.train --download-kaggle --models baseline --seeds 42 --epochs 3
+jupyter lab
 ```
 
-You can also download the dataset separately and pass the returned path:
+The notebook checks for `data/chest_xray/` before launching training. It uses the code in `pneumonia_cnn/` and does not download the dataset.
+
+### Run from the terminal
+
+To compare the custom CNN and frozen ResNet50 across three seeds:
 
 ```bash
-python - <<'PY'
-import kagglehub
-print(kagglehub.dataset_download("paultimothymooney/chest-xray-pneumonia"))
-PY
-python -m pneumonia_cnn.train --data-root /path/printed/above
+python -m pneumonia_cnn.train \
+  --data-root data/chest_xray \
+  --models baseline resnet50 \
+  --seeds 42 123 456
 ```
 
-Each run creates `runs/<UTC timestamp>/report.json` and `seed_<n>/` subdirectories containing the per-seed split manifest, duplicate report, Keras models, histories and metrics. The selected export is `selected.onnx`. An explicitly supplied `--output-dir` must be empty. Use `--seeds`, `--validation-fraction`, `--epochs`, `--batch-size`, and `--image-size` to configure training. `--skip-onnx` skips export for quick training checks; the API requires ONNX. The duplicate check reads every image once per seed; `--skip-duplicate-check` disables deduplication and leakage checks and must not be used for reported results.
-
-To classify a single image with the saved threshold and preprocessing:
+ResNet50 training can take considerable time on CPU. To check the baseline training workflow with a shorter run:
 
 ```bash
-python -m pneumonia_cnn.predict --run-dir runs/<UTC timestamp> --image path/to/image.jpeg
+python -m pneumonia_cnn.train \
+  --data-root data/chest_xray \
+  --models baseline \
+  --seeds 42 \
+  --epochs 3 \
+  --skip-onnx
 ```
 
-This prints a research-only classification and probability. The output does not represent a calibrated clinical risk or a diagnosis.
+The first ResNet50 run may download pretrained weights if they are not already cached.
 
-For an HTTP prediction with an optional Grad-CAM overlay:
+Each run creates a timestamped directory under `runs/`. Its `report.json` contains the selected model, per-seed results, and aggregate test metrics. The `seed_<n>/` directories contain split manifests, duplicate reports, model files, training histories, and metrics. A run with ONNX export also contains `selected.onnx`.
+
+You can adjust training with `--seeds`, `--validation-fraction`, `--epochs`, `--batch-size`, and `--image-size`. If you supply `--output-dir`, that directory must be empty. Do not use `--skip-duplicate-check` for reported results: it disables the identical-image deduplication and cross-split leakage checks.
+
+### Predict with a trained model
+
+Set `RUN_DIR` to the directory printed when training finishes:
 
 ```bash
-PNEUMONIA_RUN_DIR=runs/<UTC timestamp> uvicorn pneumonia_cnn.api:app --host 127.0.0.1 --port 8000
-curl -F 'image=@path/to/image.jpeg' 'http://127.0.0.1:8000/predict?grad_cam=true'
+RUN_DIR="runs/REPLACE_WITH_RUN_TIMESTAMP"
+
+python -m pneumonia_cnn.predict \
+  --run-dir "$RUN_DIR" \
+  --image /path/to/image.jpeg
 ```
 
-`GET /health` checks that the ONNX model loads. `POST /predict` accepts JPEG/PNG (up to 10 MiB), returns a thresholded class, pneumonia probability, and, when `grad_cam=true`, a base64 PNG overlay in `grad_cam_overlay_png_base64`. Set `grad_cam=false` for ONNX-only inference without loading TensorFlow. The heatmap highlights regions influencing the model score; it does not establish pathology location or provide clinical justification. Both artifacts must remain together in the run directory. The server has no authentication and should be kept on localhost for research.
+The command uses the saved model and its validation-selected threshold. Its probability is a model output, not a calibrated clinical risk or diagnosis.
+
+### Serve predictions over HTTP
+
+Use a run that contains `selected.onnx`. Start the API from the project root:
+
+```bash
+RUN_DIR="runs/REPLACE_WITH_RUN_TIMESTAMP"
+PNEUMONIA_RUN_DIR="$RUN_DIR" uvicorn pneumonia_cnn.api:app \
+  --host 127.0.0.1 \
+  --port 8000
+```
+
+In another terminal, check the model and submit an image:
+
+```bash
+curl http://127.0.0.1:8000/health
+
+curl -F 'image=@/path/to/image.jpeg' \
+  'http://127.0.0.1:8000/predict?grad_cam=true'
+```
+
+`GET /health` checks that the ONNX model loads. `POST /predict` accepts JPEG or PNG images up to 10 MiB and returns the predicted class, pneumonia probability, and saved threshold. With `grad_cam=true`, it also returns a base64 PNG overlay in `grad_cam_overlay_png_base64`. Use `grad_cam=false` for ONNX inference without loading the Keras model.
+
+Grad-CAM highlights regions that influenced the model score; it does not establish the location of a disease or justify a clinical decision. The API has no authentication and is intended for local research use.
 
 ## Historical notebook results
 
